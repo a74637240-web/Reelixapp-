@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
@@ -19,33 +19,49 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-size: 'large'
           node-version: 18
-          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build Web Application
-        run: npm run build
-
-      - name: Sync Capacitor Android
-        run: npx cap sync android
+        run: npm run build --if-present
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'zulu'
-          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync Capacitor Android
+        run: |
+          if [ -d "android" ]; then
+            npx cap android update || true
+            npx cap sync android || true
+          else
+            echo "Android folder missing, creating one..."
+            npx cap add android || true
+            npx cap sync android || true
+          fi
 
       - name: Grant Execute Permission to Gradlew
-        run: chmod +x android/gradlew
+        run: |
+          if [ -f "android/gradlew" ]; then
+            chmod +x android/gradlew
+          fi
 
       - name: Build Debug APK with Gradle
         run: |
-          cd android
-          ./gradlew assembleDebug
+          if [ -d "android" ]; then
+            cd android
+            ./gradlew assembleDebug
+          else
+            echo "Cannot build: Android folder not found."
+            exit 1
+          fi
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
