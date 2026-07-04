@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Global Safety Net: Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. Users Collection
+    match /users/{userId} {
+      allow read: if true; // User profiles are public
+      
+      // Allow creation of system seed users OR the user's own profile
+      allow create: if userId.matches('^user_.*') || userId == 'current_user_1' || (isSignedIn() && request.auth.uid == userId);
+      
+      // Allow update of system seed users, the user's own profile, or followers count
+      allow update: if userId.matches('^user_.*') || userId == 'current_user_1' || (isSignedIn() && (
+        request.auth.uid == userId || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followersCount'])
+      ));
+      
+      // Allow deletion of system seed users or own profile
+      allow delete: if userId.matches('^user_.*') || userId == 'current_user_1' || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    // 3. Videos Collection
+    match /videos/{videoId} {
+      allow read: if true; // Videos are public
+      
+      // Allow creation of system seed videos OR any video created by a signed-in user
+      allow create: if videoId.matches('^video_.*') || (isSignedIn() && request.resource.data.creator.id == request.auth.uid);
+      
+      // Allow update of system seed videos, creator's videos, or general interactions (likes, saves, views, comments, shares)
+      allow update: if videoId.matches('^video_.*') || (isSignedIn() && (
+        resource.data.creator.id == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['likedBy', 'likesCount', 'savedBy', 'viewsCount', 'commentsCount', 'sharesCount'])
+      ));
+      
+      allow delete: if videoId.matches('^video_.*') || (isSignedIn() && resource.data.creator.id == request.auth.uid);
+    }
+
+    // 4. Comments Collection
+    match /comments/{commentId} {
+      allow read: if true; // Comments are public
+      
+      // Allow creation of system seed comments OR comments by signed-in users
+      allow create: if commentId.matches('^comment_.*') || commentId.matches('^c_.*') || (isSignedIn() && request.resource.data.userId == request.auth.uid);
+      
+      // Allow update of system seed comments, creator's own comment, or general comment likes
+      allow update: if commentId.matches('^comment_.*') || commentId.matches('^c_.*') || (isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['likedBy', 'likesCount'])
+      ));
+      
+      allow delete: if commentId.matches('^comment_.*') || commentId.matches('^c_.*') || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // 5. Messages Collection
+    match /messages/{messageId} {
+      // Allow read for initial messages OR messages where the user is sender/receiver
+      allow read: if messageId.matches('^msg_init_.*') || (isSignedIn() && (
+        resource.data.senderId == request.auth.uid || 
+        resource.data.receiverId == request.auth.uid
+      ));
+      
+      // Allow creation of initial messages OR messages sent by signed-in user
+      allow create: if messageId.matches('^msg_init_.*') || (isSignedIn() && request.resource.data.senderId == request.auth.uid);
+      
+      // Allow update of initial messages, sender's own message, or receiver marking as read
+      allow update: if messageId.matches('^msg_init_.*') || (isSignedIn() && (
+        resource.data.senderId == request.auth.uid || 
+        (resource.data.receiverId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']))
+      ));
+      
+      allow delete: if messageId.matches('^msg_init_.*') || (isSignedIn() && resource.data.senderId == request.auth.uid);
+    }
+
+    // 6. Stories Collection
+    match /stories/{storyId} {
+      allow read: if true; // Stories are public
+      
+      // Allow creation of system seed stories OR story by signed-in user
+      allow create: if storyId.matches('^story_.*') || (isSignedIn() && request.resource.data.userId == request.auth.uid);
+      
+      // Allow update of system seed stories, author's story, or adding a view
+      allow update: if storyId.matches('^story_.*') || (isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['views'])
+      ));
+      
+      allow delete: if storyId.matches('^story_.*') || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+  }
+}

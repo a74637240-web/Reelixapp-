@@ -1,0 +1,6 @@
+{
+  "name": "Reels - Short Video Platform",
+  "description": "An Instagram Reels-like short video app with vertical swipe feed, likes, comments, profiles, user login, search, video uploads, and customized content.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

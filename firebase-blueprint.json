@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data stored in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "avatar": { "type": "string" },
+        "bio": { "type": "string" },
+        "followersCount": { "type": "integer" },
+        "followingCount": { "type": "integer" },
+        "postsCount": { "type": "integer" },
+        "followingIds": { "type": "array" }
+      },
+      "required": ["id", "username", "displayName"]
+    },
+    "Video": {
+      "title": "Video",
+      "description": "Video post data stored in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string" },
+        "creator": { "type": "object" },
+        "description": { "type": "string" },
+        "musicName": { "type": "string" },
+        "musicArtist": { "type": "string" },
+        "likesCount": { "type": "integer" },
+        "commentsCount": { "type": "integer" },
+        "sharesCount": { "type": "integer" },
+        "viewsCount": { "type": "integer" },
+        "tags": { "type": "array" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "integer" },
+        "likedBy": { "type": "array" },
+        "savedBy": { "type": "array" }
+      },
+      "required": ["id", "url", "creator"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment on a video post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "videoId": { "type": "string" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "likesCount": { "type": "integer" },
+        "likedBy": { "type": "array" },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["id", "videoId", "userId", "text"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Direct message between users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "sharedVideoId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "integer" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["id", "senderId", "receiverId"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "An ephemeral story post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "mediaType": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "createdAt": { "type": "integer" },
+        "views": { "type": "array" }
+      },
+      "required": ["id", "userId", "mediaType", "mediaUrl"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Public and private user profiles"
+    },
+    "/videos/{videoId}": {
+      "schema": { "$ref": "#/entities/Video" },
+      "description": "Public Reels videos"
+    },
+    "/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Comments on video posts"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Direct chat messages"
+    },
+    "/stories/{storyId}": {
+      "schema": { "$ref": "#/entities/Story" },
+      "description": "Temporary 24h stories"
+    }
+  }
+}
