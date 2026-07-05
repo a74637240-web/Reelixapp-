@@ -1,0 +1,111 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps
+          npm install --no-save @tailwindcss/oxide-linux-x64-gnu --legacy-peer-deps
+
+      - name: Fix Case-Sensitivity Mismatches
+        run: |
+          echo "Checking and correcting file casing in src/ and src/components/..."
+          
+          fix_case() {
+            local dir="$1"
+            local correct_name="$2"
+            find "$dir" -maxdepth 1 -iname "$correct_name" ! -name "$correct_name" -exec sh -c '
+              for f; do
+                echo "Fixing casing mismatch: $f -> $(dirname "$f")/'"$correct_name"'"
+                mv "$f" "$(dirname "$f")/'"$correct_name"'"
+              done
+            ' _ {} +
+          }
+
+          if [ -d "src" ]; then
+            fix_case "src" "App.tsx"
+            fix_case "src" "storageService.ts"
+            
+            if [ -d "src/components" ]; then
+              fix_case "src/components" "BannerAd.tsx"
+              fix_case "src/components" "ChatTab.tsx"
+              fix_case "src/components" "CommentSheet.tsx"
+              fix_case "src/components" "GiftSheet.tsx"
+              fix_case "src/components" "LoginModal.tsx"
+              fix_case "src/components" "NotificationsTab.tsx"
+              fix_case "src/components" "PhoneFrame.tsx"
+              fix_case "src/components" "ProfileTab.tsx"
+              fix_case "src/components" "ReelsAdCard.tsx"
+              fix_case "src/components" "ReelsFeed.tsx"
+              fix_case "src/components" "ReelsVideoCard.tsx"
+              fix_case "src/components" "SearchTab.tsx"
+              fix_case "src/components" "ShareSheet.tsx"
+              fix_case "src/components" "StoryTray.tsx"
+              fix_case "src/components" "UploadTab.tsx"
+            fi
+          fi
+
+      - name: Build Web Application
+        run: npm run build --if-present
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync Capacitor Android
+        run: |
+          if [ -d "android" ]; then
+            npx cap android update || true
+            npx cap sync android || true
+          else
+            echo "Android folder missing, creating one..."
+            npx cap add android || true
+            npx cap sync android || true
+          fi
+
+      - name: Grant Execute Permission to Gradlew
+        run: |
+          if [ -f "android/gradlew" ]; then
+            chmod +x android/gradlew
+          fi
+
+      - name: Build Debug APK with Gradle
+        run: |
+          if [ -d "android" ]; then
+            cd android
+            ./gradlew assembleDebug
+          else
+            echo "Cannot build: Android folder not found."
+            exit 1
+          fi
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reels-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
