@@ -1,7 +1,7 @@
 import { User, Video, Comment, Message, Conversation, Story, UserStories } from './types';
 import { INITIAL_USERS, INITIAL_VIDEOS, INITIAL_COMMENTS } from './data';
-import { db, auth, storage } from './firebase';
 import { 
+  db, auth, storage,
   collection, 
   doc, 
   setDoc, 
@@ -17,9 +17,10 @@ import {
   orderBy,
   where,
   increment,
-  deleteDoc
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+  deleteDoc,
+  ref, uploadBytes, getDownloadURL
+} from './firebase';
+
 
 // Localstorage key names (as fallback & local synchronous cache)
 const KEYS = {
