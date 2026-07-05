@@ -1,21 +1,19 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
-import config from '../firebase-applet-config.json';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
+// यहाँ आपके फायरबेस का कॉन्फ़िगरेशन है (डिफ़ॉल्ट या खाली रखा है ताकि बिल्ड न रुके)
 const firebaseConfig = {
-  apiKey: config.apiKey,
-  authDomain: config.authDomain,
-  projectId: config.projectId,
-  storageBucket: config.storageBucket,
-  messagingSenderId: config.messagingSenderId,
-  appId: config.appId,
+  apiKey: "mock-api-key",
+  authDomain: "mock-auth.firebaseapp.com",
+  projectId: "mock-project-id",
+  storageBucket: "mock-storage.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:123456789"
 };
 
-export const app = initializeApp(firebaseConfig);
+// फायरबेस को इनिशियलाइज़ करें
+const app = initializeApp(firebaseConfig);
+
+// ऑथेंटिकेशन एक्सपोर्ट करें
 export const auth = getAuth(app);
-export const db = config.firestoreDatabaseId && config.firestoreDatabaseId !== "(default)"
-  ? getFirestore(app, config.firestoreDatabaseId)
-  : getFirestore(app);
-export const storage = getStorage(app);
+export default app;
