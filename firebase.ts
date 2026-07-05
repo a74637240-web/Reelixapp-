@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
-// यहाँ आपके फायरबेस का कॉन्फ़िगरेशन है (डिफ़ॉल्ट या खाली रखा है ताकि बिल्ड न रुके)
+// यहाँ आपके फायरबेस का पूरा मॉक कॉन्फ़िगरेशन है
 const firebaseConfig = {
   apiKey: "mock-api-key",
   authDomain: "mock-auth.firebaseapp.com",
@@ -14,6 +16,9 @@ const firebaseConfig = {
 // फायरबेस को इनिशियलाइज़ करें
 const app = initializeApp(firebaseConfig);
 
-// ऑथेंटिकेशन एक्सपोर्ट करें
+// सभी ज़रूरी टूल्स को एक्सपोर्ट करें ताकि कोई फ़ाइल न अटके
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
 export default app;
