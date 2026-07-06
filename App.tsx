@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon } from 'lucide-react';
-import PhoneFrame from './components/phoneFrame.tsx';
-import ReelsFeed from './components/ReelsFeed.tsx';
+import PhoneFrame from './components/MainFrame';
+import ReelsFeed from './components/ReelsFeed';
 import SearchTab from './components/SearchTab';
 import UploadTab from './components/UploadTab';
 import ProfileTab from './components/ProfileTab';
