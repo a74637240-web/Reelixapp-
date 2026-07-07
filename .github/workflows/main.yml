@@ -53,10 +53,15 @@ jobs:
       - name: Grant Execute Permission to Gradlew
         run: |
           if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
+            chmod +x android/gradle 
+            
           fi
 
-      - name: Build Debug APK with Gradle
+
+           - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@
+      - n
+      ame: Build Debug APK with Gradle
         run: |
           if [ -d "android" ]; then
             cd android
