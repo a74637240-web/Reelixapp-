@@ -50,23 +50,6 @@ jobs:
             npx cap sync android || true
           fi
 
-      - name: Fix Corrupt Gradle Wrapper
-        run: |
-          if [ -d "android/gradle/wrapper" ]; then
-            echo "Fixing corrupt gradle-wrapper.jar..."
-            rm -f android/gradle/wrapper/gradle-wrapper.jar
-            curl -Lo android/gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/main/gradle/wrapper/gradle-wrapper.jar
-          fi
-
-      - name: Grant Execute Permission to Gradlew
-        run: |
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
-          fi
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
       - name: Generate Original Signing Key
         run: |
           if [ ! -f "reels-release.keystore" ]; then
@@ -77,7 +60,9 @@ jobs:
         run: |
           if [ -d "android" ]; then
             cd android
-            ./gradlew assembleRelease
+            
+            # प्रोजेक्ट के करप्ट gradlew को छोड़कर सीधे ग्लोबल gradle से बिल्ड करना
+            gradle assembleRelease
             
             # ऑटोमैटिक सबसे लेटेस्ट apksigner का रास्ता ढूंढना
             APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools/ -name apksigner | sort | tail -n 1)
