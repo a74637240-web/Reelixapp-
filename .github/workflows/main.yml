@@ -65,14 +65,22 @@ jobs:
             keytool -genkey -v -keystore reels-release.keystore -alias reels-alias -keyalg RSA -keysize 2048 -validity 10000 -storepass "MySecurePass123" -keypass "MySecurePass123" -dname "CN=Arun, O=ReelsApp, C=IN"
           fi
 
-      - name: Build Original Signed Release APK
+      - name: Build and Automate Signing Release APK
         run: |
           if [ -d "android" ]; then
             cd android
             ./gradlew assembleRelease
             
-            # ऐप को असली चाभी से लॉक (Sign) करना
-            $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks ../reels-release.keystore --ks-key-alias reels-alias --ks-pass pass:"MySecurePass123" --key-pass pass:"MySecurePass123" --out app-release-signed.apk app/build/outputs/apk/release/app-release-unsigned.apk
+            # ऑटोमैटिक सबसे लेटेस्ट apksigner का रास्ता ढूंढना
+            APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools/ -name apksigner | sort | tail -n 1)
+            echo "Using apksigner at: $APKSIGNER_PATH"
+            
+            # बिल्ड हुई असली APK फ़ाइल को खोजना
+            UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
+            echo "Found unsigned APK at: $UNSIGNED_APK"
+            
+            # ऐप को असली चाभी से लॉक करना
+            $APKSIGNER_PATH sign --ks ../reels-release.keystore --ks-key-alias reels-alias --ks-pass pass:"MySecurePass123" --key-pass pass:"MySecurePass123" --out app-release-signed.apk $UNSIGNED_APK
           else
             echo "Cannot build: Android folder not found."
             exit 1
@@ -83,4 +91,3 @@ jobs:
         with:
           name: Reels-Original-Release-APK
           path: android/app-release-signed.apk
-          
