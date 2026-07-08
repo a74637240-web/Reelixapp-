@@ -39,15 +39,18 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Sync Capacitor Android
+      - name: Sync and Create Missing Plugins Directory
         run: |
           if [ -d "android" ]; then
             npx cap android update || true
             npx cap sync android || true
+            # मिसिंग प्लगइन्स डायरेक्टरी को मैन्युअल बनाना ताकि एरर न आए
+            mkdir -p android/capacitor-cordova-android-plugins
           else
             echo "Android folder missing, creating one..."
             npx cap add android || true
             npx cap sync android || true
+            mkdir -p android/capacitor-cordova-android-plugins
           fi
 
       - name: Generate Original Signing Key
@@ -61,8 +64,8 @@ jobs:
           if [ -d "android" ]; then
             cd android
             
-            # प्रोजेक्ट के करप्ट gradlew को छोड़कर सीधे ग्लोबल gradle से बिल्ड करना
-            gradle assembleRelease
+            # डायरेक्टरी चेक करना और प्रोजेक्ट बिल्ड करना
+            gradle assembleRelease --no-daemon
             
             # ऑटोमैटिक सबसे लेटेस्ट apksigner का रास्ता ढूंढना
             APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools/ -name apksigner | sort | tail -n 1)
