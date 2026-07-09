@@ -39,15 +39,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Recreate Fresh Android Project Structures
+      - name: Generate Fresh Android Project Structures
         run: |
-          # पुराना खराब या आधा-अधूरा फोल्डर डिलीट करना ताकि फ्रेश बिल्ड बने
           rm -rf android
-          
-          # बिल्कुल शुरू से कैपेसिटर का एंड्रॉइड प्रोजेक्ट जोड़ना
           npx cap add android
-          
-          # वेब एसेट्स और प्लगइन्स को सही से सिंक करना (यह खुद :app और सारे फोल्डर्स बनाएगा)
           npx cap sync android
 
       - name: Generate Original Signing Key
@@ -59,22 +54,12 @@ jobs:
       - name: Build and Sign Release APK via Native Gradlew
         run: |
           cd android
-          
-          # फ्रेश बने हुए प्रोजेक्ट को ग्रांट परमिशन देना
           chmod +x gradlew
-          
-          # नेटिव तरीके से रिलीज APK कंपाइल करना
           ./gradlew assembleRelease --no-daemon
           
-          # ऑटोमैटिक लेटेस्ट apksigner का रास्ता ढूंढना
           APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools/ -name apksigner | sort | tail -n 1)
-          echo "Using apksigner at: $APKSIGNER_PATH"
-          
-          # बनी हुई रिलीज APK फाइल को ढूंढना
           UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
-          echo "Found unsigned APK at: $UNSIGNED_APK"
           
-          # ऐप को हमारी डिजिटल चाभी से सुरक्षित लॉक करना
           $APKSIGNER_PATH sign --ks ../reels-release.keystore --ks-key-alias reels-alias --ks-pass pass:"MySecurePass123" --key-pass pass:"MySecurePass123" --out app-release-signed.apk $UNSIGNED_APK
 
       - name: Upload Original Release APK
