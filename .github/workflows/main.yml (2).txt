@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Original Release APK
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build APK
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -19,65 +19,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Install Dependencies
         run: |
           rm -f package-lock.json
           npm install --legacy-peer-deps
           npm install --no-save @tailwindcss/oxide-linux-x64-gnu --legacy-peer-deps
-
-      - name: Fix Case-Sensitivity Mismatches
-        run: |
-          echo "Checking and correcting file casing in src/ and src/components/..."
-          
-          fix_case() {
-            local dir="$1"
-            local correct_name="$2"
-            find "$dir" -maxdepth 1 -iname "$correct_name" ! -name "$correct_name" -exec sh -c '
-              for f; do
-                echo "Fixing casing mismatch: $f -> $(dirname "$f")/'"$correct_name"'"
-                mv "$f" "$(dirname "$f")/'"$correct_name"'"
-              done
-            ' _ {} +
-          }
-
-          if [ -d "src" ]; then
-            fix_case "src" "App.tsx"
-            fix_case "src" "storageService.ts"
-            
-            if [ -d "src/components" ]; then
-              fix_case "src/components" "BannerAd.tsx"
-              fix_case "src/components" "ChatTab.tsx"
-              fix_case "src/components" "CommentSheet.tsx"
-              fix_case "src/components" "GiftSheet.tsx"
-              fix_case "src/components" "LoginModal.tsx"
-              fix_case "src/components" "NotificationsTab.tsx"
-              fix_case "src/components" "PhoneFrame.tsx"
-              fix_case "src/components" "ProfileTab.tsx"
-              fix_case "src/components" "ReelsAdCard.tsx"
-              fix_case "src/components" "ReelsFeed.tsx"
-              fix_case "src/components" "ReelsVideoCard.tsx"
-              fix_case "src/components" "SearchTab.tsx"
-              fix_case "src/components" "ShareSheet.tsx"
-              fix_case "src/components" "StoryTray.tsx"
-              fix_case "src/components" "UploadTab.tsx"
-            fi
-          fi
-
-          # Fix android folder casing if it exists under a capitalized name
-          if [ -d "Android" ] && [ ! -d "android" ]; then
-            echo "Fixing casing mismatch: Android -> android"
-            mv Android android
-          fi
-
-          if [ -d "android" ]; then
-            # Fix android/App -> android/app casing if it exists under a capitalized name
-            if [ -d "android/App" ] && [ ! -d "android/app" ]; then
-              echo "Fixing casing mismatch: android/App -> android/app"
-              mv android/App android/app
-            fi
-          fi
 
       - name: Build Web Application
         run: npm run build --if-present
@@ -91,40 +39,46 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Sync Capacitor Android
+      - name: Recreate Fresh Android Project Structures
         run: |
-          if [ -d "android" ] && [ ! -d "android/app" ]; then
-            echo "android directory exists but android/app is missing or not a directory. Recreating..."
-            rm -rf android
-          fi
+          # पुराना खराब या आधा-अधूरा फोल्डर डिलीट करना ताकि फ्रेश बिल्ड बने
+          rm -rf android
+          
+          # बिल्कुल शुरू से कैपेसिटर का एंड्रॉइड प्रोजेक्ट जोड़ना
+          npx cap add android
+          
+          # वेब एसेट्स और प्लगइन्स को सही से सिंक करना (यह खुद :app और सारे फोल्डर्स बनाएगा)
+          npx cap sync android
 
-          if [ -d "android" ]; then
-            npx cap android update || true
-            npx cap sync android || true
-          else
-            echo "Android folder missing, creating one..."
-            npx cap add android || true
-            npx cap sync android || true
-          fi
-
-      - name: Grant Execute Permission to Gradlew
+      - name: Generate Original Signing Key
         run: |
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
+          if [ ! -f "reels-release.keystore" ]; then
+            keytool -genkey -v -keystore reels-release.keystore -alias reels-alias -keyalg RSA -keysize 2048 -validity 10000 -storepass "MySecurePass123" -keypass "MySecurePass123" -dname "CN=Arun, O=ReelsApp, C=IN"
           fi
 
-      - name: Build Debug APK with Gradle
+      - name: Build and Sign Release APK via Native Gradlew
         run: |
-          if [ -d "android" ]; then
-            cd android
-            ./gradlew assembleDebug
-          else
-            echo "Cannot build: Android folder not found."
-            exit 1
-          fi
+          cd android
+          
+          # फ्रेश बने हुए प्रोजेक्ट को ग्रांट परमिशन देना
+          chmod +x gradlew
+          
+          # नेटिव तरीके से रिलीज APK कंपाइल करना
+          ./gradlew assembleRelease --no-daemon
+          
+          # ऑटोमैटिक लेटेस्ट apksigner का रास्ता ढूंढना
+          APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools/ -name apksigner | sort | tail -n 1)
+          echo "Using apksigner at: $APKSIGNER_PATH"
+          
+          # बनी हुई रिलीज APK फाइल को ढूंढना
+          UNSIGNED_APK=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
+          echo "Found unsigned APK at: $UNSIGNED_APK"
+          
+          # ऐप को हमारी डिजिटल चाभी से सुरक्षित लॉक करना
+          $APKSIGNER_PATH sign --ks ../reels-release.keystore --ks-key-alias reels-alias --ks-pass pass:"MySecurePass123" --key-pass pass:"MySecurePass123" --out app-release-signed.apk $UNSIGNED_APK
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Original Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Reels-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Reels-Original-Release-APK
+          path: android/app-release-signed.apk
